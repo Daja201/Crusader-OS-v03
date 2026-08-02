@@ -74,6 +74,8 @@ $(ISO): $(KERNEL)
 clean:
 	rm -f *.o $(KERNEL) $(ISO)
 	rm -rf $(ISO_DIR)
+	rm disk.img
+	rm disk2.img
 run:
 	qemu-system-i386 -cdrom os.iso \
 		-drive file=disk.img,format=raw,bus=0,unit=0,media=disk \
@@ -98,7 +100,7 @@ a:
 	make dd_second
 	make 
 	make run
-	echo MAKE HAS DONE EVERYTHING FOR YOU, DRIVE SIZE: 128MB
+	FINISHED
 
 d: 	
 	qemu-system-i386 -cdrom os.iso -no-reboot -d int,cpu_reset

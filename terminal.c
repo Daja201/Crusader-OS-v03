@@ -5,7 +5,7 @@
 
 char cmd_buf[CMD_BUF_SIZE];
 int cmd_len = 0;
-extern char g_current_path[64] = "";
+char g_current_path[64] = "";
 
 void execute_command(char* line) {
     char* argv[8];

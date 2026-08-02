@@ -10,6 +10,7 @@ extern int command_count;
 void cmd_read(int argc, char** argv);
 void cmd_ls(int argc, char** argv);
 void cmd_find(int argc, char** argv);
-void cmd_time();
-void drives();
+void cmd_time(int argc, char** argv);
+void drives(void);
+void cmd_time(int argc, char** argv);
 #endif

@@ -8,6 +8,8 @@
 #include <string.h>
 #include "diskinfo.h"
 #include "fs.h"
+#include "pmm.h"
+#include "rtc.h"
 #define MAX_NOTES 15
 #define NAME_LEN 20
 #define CONTENT_LEN 50
@@ -230,7 +232,8 @@ static void vprintf_internal_green_kk(const char *fmt, va_list args) {
 
 void logo() {
     klog_red("                                                                                              ");
-    cmd_time();
+    char *argv[] = { (char*)"time", NULL };
+    cmd_time(1, argv);
     klog_red("     __                                                                                       ");
     drives();
     kklog_red("   ,/ _~.                          |\\                    ,-||-,     -_-/      ------          Welcome to Crusader OS   ");

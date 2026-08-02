@@ -12,6 +12,7 @@
 #include "idt.h"
 #include "task.h"
 #include "io.h"
+#include "ac97.h"
 volatile uint32_t timer_ticks = 0;
 
 void timer_init(uint32_t frequency) {
@@ -65,11 +66,11 @@ void kmain(unsigned long mb_magic, unsigned long mb_info) {
     appname("TERMINAL");
     klog("\n");
     klog_yellow("CRUSADER>> ");
-    klog_status("BOOTED");
+    klog_status("BOOTED", 'b');
     timer_init(1000); 
     init_multitasking();
     create_task(system_main_task); 
-    klog_status("MULTITASKING STARTED");
+    klog_status("MULTITASKING STARTED", 'b');
     ac97_init();
     asm volatile("sti");
     while (1) {

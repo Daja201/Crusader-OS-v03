@@ -211,7 +211,7 @@ static uint32_t ata_get_total_sectors_dev(uint16_t base, uint8_t is_slave) {
 }
 
 void format_fs() {
-    klog_status("FORMATTING STARTED");
+    klog_status("FORMATTING STARTED", 'b');
     select_drive(g_drives[g_current_drive].ata_base, g_drives[g_current_drive].is_slave);
     g_current_dir = 0;
     g_superblock.magic = 0x5A4C534A;
@@ -246,14 +246,14 @@ void format_fs() {
     save_inode_bitmap();
     create_root();
     create_defdirs();
-    klog_status("FORMATTED");
+    klog_status("FORMATTED", 'g');
     init_fs();
 }
 
 void qformat_fs(void) {
     uint8_t zero_sector[SECTOR_SIZE];
     memset(zero_sector, 0, SECTOR_SIZE);
-    klog_status("QUICK FORMATTING STARTED");
+    klog_status("QUICK FORMATTING STARTED", 'b');
     select_drive(g_drives[g_current_drive].ata_base, g_drives[g_current_drive].is_slave);
     g_current_dir = 0;
     g_superblock.magic = 0x5A4C534A;
@@ -300,7 +300,7 @@ void qformat_fs(void) {
     create_root();
     create_defdirs();
     init_fs();
-    klog_status("FORMATTED");
+    klog_status("FORMATTED", 'g');
 }
 
 void drives() {

@@ -120,3 +120,6 @@ isr32:
     popa             ; Obnovíme registry EAX-EDI
     add esp, 8       ; Přeskočíme chybový kód (0) a číslo (32)
     iret
+section .note.GNU-stack
+    align 4
+    db 0
