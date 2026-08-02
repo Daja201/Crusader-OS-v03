@@ -110,7 +110,7 @@ int ac97_play_test_tone(void) {
 int play_wav_file(const char* filename) {
     int inode_num = fs_resolve_path(filename, g_current_dir);
     if (inode_num < 0) {
-        kklogf_green("WAV: %s not found\n", filename);
+        kklogf_color("WAV: %s not found\n", 0x00FF00, filename);
         return -1;
     }
     inode_t file_node;
@@ -124,7 +124,7 @@ int play_wav_file(const char* filename) {
     uint32_t total_data = header.subchunk2Size;
     uint32_t offset = sizeof(wav_header_t);
     uint32_t played = 0;
-    kklogf_green("Playing: %s (%u bytes)\n", filename, total_data);
+    kklogf_color("Playing: %s (%u bytes)\n", 0x00FF00, filename, total_data);
     while (played < total_data) {
         uint32_t to_read = total_data - played;
         if (to_read > CHUNK_SIZE) to_read = CHUNK_SIZE;

@@ -60,12 +60,12 @@ void kmain(unsigned long mb_magic, unsigned long mb_info) {
     logo();
     init_fs();
     klog("\n");
-    klog_yellow("CRUSADER>> ");
-    klog_status("BOOTED", 'b');
+    klog_color("CRUSADER>> ", 0xFFFF00);
+    klog_status("BOOTED", 0x0000FF);
     timer_init(1000); 
     init_multitasking();
     create_task(system_main_task); 
-    klog_status("MULTITASKING STARTED", 'b');
+    klog_status("MULTITASKING STARTED", 0x0000FF);
     ac97_init();
     asm volatile("sti");
     while (1) {

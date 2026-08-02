@@ -42,9 +42,9 @@ void terminal_key(char c) {
         klog("\n");
         execute_command(cmd_buf);
         cmd_len = 0;
-        klog_yellow("CRUSADER");
-        klog_orange(g_current_path);
-        klog_yellow(">> ");
+        klog_color("CRUSADER", 0xFFFF00);
+        klog_color(g_current_path, 0xFFA500);
+        klog_color(">> ", 0xFFFF00);
         return;
     }
         return;

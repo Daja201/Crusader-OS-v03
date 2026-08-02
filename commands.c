@@ -59,10 +59,10 @@ static uint8_t raw_wav_buffer[CHUNK_SECTORS * 512] __attribute__((aligned(8)));
 
 
 void cmd_help(int argc, char** argv) {
-    kklog_red("Welcome to Crusader OS made by David Zapletal");
-    kklog_red("Source code shoould be available on: https://github.com/Daja201/Crusader-OS-v02");
-    kklog_red("Feel free to copy and change source code for yourself.");
-    kklog_red("Run command: 'lib' for info about commands and whole system.");
+    kklog_color("Welcome to Crusader OS made by David Zapletal", 0xFF0000);
+    kklog_color("Source code shoould be available on: https://github.com/Daja201/Crusader-OS-v02", 0xFF0000);
+    kklog_color("Feel free to copy and change source code for yourself.", 0xFF0000);
+    kklog_color("Run command: 'lib' for info about commands and whole system.", 0xFF0000);
 }
 
 void busy_ms(int ms) {
@@ -151,10 +151,10 @@ void cmd_cat(int argc, char** argv) {
 
 void cmd_ld(int argc, char** argv) {
     if (g_active_drives == 0) {
-        kklog_red("No active drives detected.");
+        kklog_color("No active drives detected.", 0xFF0000);
         return;
     }
-    kklog_green("ALL DRIVES INFO:");
+    kklog_color("ALL DRIVES INFO:", 0x00FF00);
     int original_drive = g_current_drive;
     for (int i = 0; i < g_active_drives; i++) {
         fs_device_t* dev = &g_drives[i];
@@ -170,19 +170,19 @@ void cmd_ld(int argc, char** argv) {
         superblock_t* temp_sb = (superblock_t*)sector_buf;
         if (temp_sb->magic == 0x5A4C534A) {
             if (i == original_drive) {
-                kklog_green("Status:       Formatted [CURRENT]");
+                kklog_color("Status:       Formatted [CURRENT]", 0x00FF00);
             } else {
-                kklog_green("Status:       Formatted");
+                kklog_color("Status:       Formatted", 0x00FF00);
             }
             klogf("Total Blocks: %d\n", temp_sb->total_blocks);
             klogf("Inodes:       %d used/total\n", temp_sb->inode_count);
             klogf("Data Start:   LBA %d\n", temp_sb->data_start);
         } else {
             if (i == original_drive) {
-                kklog_red("Status:       NOT FORMATTED [CURRENT]");
+                kklog_color("Status:       NOT FORMATTED [CURRENT]", 0xFF0000);
                 kklog("use 'format' to format current drive");
             } else {
-                kklog_red("Status:       NOT FORMATTED");
+                kklog_color("Status:       NOT FORMATTED", 0xFF0000);
             }
             
         }    
@@ -259,9 +259,9 @@ void cmd_ls(int argc, char** argv) {
                 read_inode(entries[i].inode, &file_node);
                 klog("  ");
                 if (file_node.type == 2) {
-                    klog_red(entries[i].name);
+                    klog_color(entries[i].name, 0xFF0000);
                 } else {
-                    klog_green(entries[i].name);
+                    klog_color(entries[i].name, 0x00FF00);
                 }
             }
         }
@@ -305,7 +305,7 @@ void cmd_wr(int argc, char** argv) {
 }
 
 void cmd_shutdown(int argc, char** argv) {
-    kklog_red("\nPREPARING FS...\n");
+    kklog_color("\nPREPARING FS...\n", 0xFF0000);
     save_block_bitmap();
     save_inode_bitmap();
     busy_ms(1000);
@@ -334,12 +334,12 @@ void cmd_time(int argc, char** argv) {
     int hour, min, sec;
     rtc_get_datetime(&year, &month, &day, &hour, &min, &sec);
     char b[8];
-    klog_green("RTC: ");
-    itoa(year, b, 10); klog_green(b);;itoa(month, b, 10);klog_green(" "); klog_green(b);itoa(day, b, 10);klog_green(" "); klog_green(b); klog_green(" ");
-    itoa(hour, b, 10); klog_green(b); klog_green(":");
-    itoa(min, b, 10); klog_green(b); klog_green(":"); 
-    itoa(sec, b, 10); klog_green(b);
-    klog_green("\n");
+    klog_color("RTC: ", 0x00FF00);
+    itoa(year, b, 10); klog_color(b, 0x00FF00);;itoa(month, b, 10);klog_color(" ", 0x00FF00); klog_color(b, 0x00FF00);itoa(day, b, 10);klog_color(" ", 0x00FF00); klog_color(b, 0x00FF00); klog_color(" ", 0x00FF00);
+    itoa(hour, b, 10); klog_color(b, 0x00FF00); klog_color(":", 0x00FF00);
+    itoa(min, b, 10); klog_color(b, 0x00FF00); klog_color(":", 0x00FF00); 
+    itoa(sec, b, 10); klog_color(b, 0x00FF00);
+    klog_color("\n", 0x00FF00);
 }
 
 /**
@@ -540,7 +540,7 @@ void cmd_playraw() {
         select_drive(0x1F0, 0);
         return;
     }
-    kklog_green("Wave found\n");
+    kklog_color("Wave found\n", 0x00FF00);
     uint32_t current_lba = 0;
     for (int chunk = 0; chunk < 500; chunk++) {
         for (int i = 0; i < CHUNK_SECTORS; i++) {

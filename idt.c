@@ -117,7 +117,7 @@ void fault_handler(registers_t *regs) {
             uint32_t *fb = (uint32_t *)boot_fb_addr;
             c_x = 0;
             c_y = 0;
-            klogf_green("EXCEPTION: %d | EIP: 0x%x | ERR: 0x%x\n", regs->int_no, regs->eip, regs->err_code);
+            klogf_color("EXCEPTION: %d | EIP: 0x%x | ERR: 0x%x\n", 0x00FF00, regs->int_no, regs->eip, regs->err_code);
             extern void vesa_swap(void);
             vesa_swap();
             for (int y = 0; y < 8; y++) {

@@ -14,13 +14,49 @@
 #define SCREEN_W 1920
 #define SCREEN_H 1080
 
-static void vprintf_internal(const char *fmt, va_list args) {
+/* ------------------------------------------------------------------ */
+/* Generic colour-aware primitives                                    */
+/* ------------------------------------------------------------------ */
+
+/* Draws msg in the given foreground colour on a black background,
+ * without a trailing newline. */
+void klog_color(const char* msg, uint32_t color) {
+    while (*msg != '\0') {
+        char c = *msg;
+        cursor('e');
+        if (c == '\n') {
+            c_x = 0;
+            c_y += 8;
+        } else {
+            vesa_draw_char_34(c, c_x, c_y, color, 0x000000);
+            c_x += 8;
+            if (c_x >= SCREEN_W) {
+                c_x = 0;
+                c_y += 8;
+            }
+        }
+        if (c_y >= SCREEN_H) {
+            c_y = 0;
+            vesa_clear(0x000000);
+        }
+        msg++;
+    }
+    cursor('d');
+}
+
+/* Same as klog_color, but appends a newline afterwards. */
+void kklog_color(const char* msg, uint32_t color) {
+    klog_color(msg, color);
+    klog("\n");
+}
+
+static void vprintf_internal_color(const char *fmt, uint32_t color, va_list args) {
     char buf[32];
     char ch;
     for (int i = 0; fmt[i] != '\0'; i++) {
         if (fmt[i] != '%') {
             char out[2] = { fmt[i], 0 };
-            klog_green(out);
+            klog_color(out, color);
             continue;
         }
         i++;
@@ -28,25 +64,114 @@ static void vprintf_internal(const char *fmt, va_list args) {
             case 'd': {
                 int val = va_arg(args, int);
                 itoa(val, buf, 10);
-                klog_green(buf);
+                klog_color(buf, color);
                 break;
             }
             case 'x': {
                 uint32_t val = va_arg(args, uint32_t);
                 itoa(val, buf, 16);
-                klog_green(buf);
+                klog_color(buf, color);
                 break;
             }
             case 's': {
                 char *s = va_arg(args, char*);
                 if (!s) s = "(null)";
-                klog_green(s);
+                klog_color(s, color);
                 break;
             }
             case 'c': {
                 ch = (char)va_arg(args, int);
                 char out[2] = { ch, 0 };
-                klog_green(out);
+                klog_color(out, color);
+                break;
+            }
+            case 'l': {
+               if (fmt[i+1] == 'l' && fmt[i+2] == 'u') {
+                    unsigned long long v = va_arg(args, unsigned long long);
+                    int idx = 0;
+                    if (v == 0) {
+                        buf[idx++] = '0';
+                    } else {
+                        unsigned long long div = 1;
+                        while (div <= v / 10) div *= 10;
+                        while (div > 0) {
+                            buf[idx++] = '0' + (v / div);
+                            v %= div;
+                            div /= 10;
+                        }
+                    }
+                    buf[idx] = '\0';
+                    klog_color(buf, color);
+                    i += 2;
+                } else {
+                    klog_color("<?>", color);
+                }
+                break;
+            }
+            case '%':
+                klog_color("%", color);
+                break;
+            default:
+                klog_color("<?>", color);
+                break;
+        }
+    }
+}
+
+/* printf-style logging in an arbitrary colour, no trailing newline. */
+void klogf_color(const char *fmt, uint32_t color, ...) {
+    va_list args;
+    va_start(args, color);
+    vprintf_internal_color(fmt, color, args);
+    va_end(args);
+}
+
+/* printf-style logging in an arbitrary colour, with trailing newline. */
+void kklogf_color(const char *fmt, uint32_t color, ...) {
+    va_list args;
+    va_start(args, color);
+    vprintf_internal_color(fmt, color, args);
+    va_end(args);
+    klog("\n");
+}
+
+/* ------------------------------------------------------------------ */
+/* Plain (white-on-black) logging                                     */
+/* ------------------------------------------------------------------ */
+
+static void vprintf_internal(const char *fmt, va_list args) {
+    char buf[32];
+    char ch;
+    for (int i = 0; fmt[i] != '\0'; i++) {
+        if (fmt[i] != '%') {
+            char out[2] = { fmt[i], 0 };
+            klog(out);
+            continue;
+        }
+        i++;
+        switch (fmt[i]) {
+            case 'd': {
+                int val = va_arg(args, int);
+                itoa(val, buf, 10);
+                klog(buf);
+                break;
+            }
+            case 'x': {
+                uint32_t val = va_arg(args, uint32_t);
+                itoa(val, buf, 16);
+                klog(buf);
+                break;
+            }
+            case 's': {
+                char *s = va_arg(args, char*);
+                if (!s) s = "(null)";
+                klog(s);
+                break;
+            }
+            case 'c': {
+                ch = (char)va_arg(args, int);
+                char out[2] = { ch, 0 };
+                klog(out);
                 break;
             }
             case 'l': {
@@ -150,260 +275,34 @@ void kklogf(const char *fmt, ...) {
     klog("\n");
 }
 
-static void vprintf_internal_green_kk(const char *fmt, va_list args) {
-    char buf[32];
-    char ch;
-    for (int i = 0; fmt[i] != '\0'; i++) {
-        if (fmt[i] != '%') {
-            char out[2] = { fmt[i], 0 };
-            klog_green(out);
-            continue;
-        }
-        i++;
-        switch (fmt[i]) {
-            case 'd': {
-                int val = va_arg(args, int);
-                itoa(val, buf, 10);
-                kklog_green(buf);
-                break;
-            }
-            case 'x': {
-                uint32_t val = va_arg(args, uint32_t);
-                itoa(val, buf, 16);
-                klog_green(buf);
-                break;
-            }
-            case 's': {
-                char *s = va_arg(args, char*);
-                if (!s) s = "(null)";
-                kklog_green(s);
-                break;
-            }
-            case 'c': {
-                ch = (char)va_arg(args, int);
-                char out[2] = { ch, 0 };
-                kklog_green(out);
-                break;
-            }
-            case 'l': {
-               if (fmt[i+1] == 'l' && fmt[i+2] == 'u') {
-                    unsigned long long v = va_arg(args, unsigned long long);
-                    int idx = 0;
-                    if (v == 0) {
-                        buf[idx++] = '0';
-                    } else {
-                        unsigned long long div = 1;
-                        while (div <= v / 10) div *= 10;
-                        while (div > 0) {
-                            buf[idx++] = '0' + (v / div);
-                            v %= div;
-                            div /= 10;
-                        }
-                    }
-                    buf[idx] = '\0';
-                    klog_green(buf);
-                    i += 2;
-                } else {
-                    kklog_green("<?>");
-                }
-                break;
-            }
-            case '%':
-                kklog_green("%");
-                break;
-
-            default:
-                kklog_green("<?>");
-                break;
-        }
-    }
-}
+/* ------------------------------------------------------------------ */
+/* Boot logo                                                           */
+/* ------------------------------------------------------------------ */
 
 void logo() {
-    klog_red("                                                                                              ");
+    klog_color("                                                                                              ", 0xFF0000);
     char *argv[] = { (char*)"time", NULL };
     cmd_time(1, argv);
-    klog_red("     __                                                                                       ");
+    klog_color("     __                                                                                       ", 0xFF0000);
     drives();
-    kklog_red("   ,/ _~.                          |\\                    ,-||-,     -_-/      ------          Welcome to Crusader OS   ");
-    kklog_red("  (' /|                       _     \\\\                  ('|||  )   (_ /         ||            An hobby operating system");
-    kklog_red(" ((  ||   ,._-_ \\\\ \\\\  _-_,  < \\,  / \\\\  _-_  ,._-_    (( |||--)) (_ --_   |    ||    |       made by:                 ");
-    kklog_red(" ((  ||    ||   || || ||_.   /-|| || || || \\\\  ||      (( |||--))   --_ )  |====[]====|       David Zapletal           ");
-    kklog_red("  ( / |    ||   || ||  ~ || (( || || || ||/    ||       ( / |  )   _/  ))  |    ||    |                                ");
-    kklog_red("   \\____-  \\\\,  \\\\/\\\\ ,-_-   \\/\\\\  \\\\/  \\\\,/   \\\\,       -____-   (_-_-         ||                                     ");
-    kklog_red("                                                                              ------                                   ");
-    kklog_red("                                DEUS VULT                                                                              ");
-    kklog_red("                                                                                                                       ");
-    kklog_red("                          Made by github:Daja201                                                                       ");
-    kklog_red("                                                                                                                       ");
+    kklog_color("   ,/ _~.                          |\\                    ,-||-,     -_-/      ------          Welcome to Crusader OS   ", 0xFF0000);
+    kklog_color("  (' /|                       _     \\\\                  ('|||  )   (_ /         ||            An hobby operating system", 0xFF0000);
+    kklog_color(" ((  ||   ,._-_ \\\\ \\\\  _-_,  < \\,  / \\\\  _-_  ,._-_    (( |||--)) (_ --_   |    ||    |       made by:                 ", 0xFF0000);
+    kklog_color(" ((  ||    ||   || || ||_.   /-|| || || || \\\\  ||      (( |||--))   --_ )  |====[]====|       David Zapletal           ", 0xFF0000);
+    kklog_color("  ( / |    ||   || ||  ~ || (( || || || ||/    ||       ( / |  )   _/  ))  |    ||    |                                ", 0xFF0000);
+    kklog_color("   \\____-  \\\\,  \\\\/\\\\ ,-_-   \\/\\\\  \\\\/  \\\\,/   \\\\,       -____-   (_-_-         ||                                     ", 0xFF0000);
+    kklog_color("                                                                              ------                                   ", 0xFF0000);
+    kklog_color("                                DEUS VULT                                                                              ", 0xFF0000);
+    kklog_color("                                                                                                                       ", 0xFF0000);
+    kklog_color("                          Made by github:Daja201                                                                       ", 0xFF0000);
+    kklog_color("                                                                                                                       ", 0xFF0000);
 }
 
-void klogf_green(const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    vprintf_internal(fmt, args);
-    va_end(args);
-}
+/* ------------------------------------------------------------------ */
+/* Status helper                                                       */
+/* ------------------------------------------------------------------ */
 
-void kklogf_green(const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    vprintf_internal_green_kk(fmt, args);
-    va_end(args);
-}
-
-void klog_green(const char* msg) {
-    while (*msg != '\0') {
-        char c = *msg;
-        cursor('e');
-        if (c == '\n') {
-            c_x = 0;
-            c_y += 8;
-        } else {
-            vesa_draw_char_34(c, c_x, c_y, 0x000000, 0x00FF00);
-            c_x += 8;
-            if (c_x >= SCREEN_W) {
-                c_x = 0;
-                c_y += 8;
-            }
-        }
-        if (c_y >= SCREEN_H) {
-            c_y = 0;
-            vesa_clear(0x000000);
-        }
-        msg++;
-    }
-    cursor('d');
-}
-
-void kklog_green(const char* msg) {
-    while (*msg != '\0') {
-        char c = *msg;
-        cursor('e');
-        if (c == '\n') {
-            c_x = 0;
-            c_y += 8;
-        } else {
-            vesa_draw_char_34(c, c_x, c_y, 0x000000, 0x00FF00);
-            c_x += 8;
-            if (c_x >= SCREEN_W) {
-                c_x = 0;
-                c_y += 8;
-            }
-        }
-        if (c_y >= SCREEN_H) {
-            c_y = 0;
-            vesa_clear(0x000000);
-        }
-        msg++;
-    }
-    cursor('d');
-    klog("\n");
-}
-
-void klog_red(const char* msg) {
-    while (*msg != '\0') {
-        char c = *msg;
-        if (c == '\n') {
-            c_x = 0;
-            c_y += 8;
-        } else {
-            vesa_draw_char_34(c, c_x, c_y, 0xFFFFFF, 0xFF0000);
-            c_x += 8;
-            if (c_x >= SCREEN_W) {
-                c_x = 0;
-                c_y += 8;
-            }
-        }
-        if (c_y >= SCREEN_H) {
-            c_y = 0;
-            vesa_clear(0x000000);
-        }
-        msg++;
-    }
-}
-
-void klog_yellow(const char* msg) {
-    while (*msg != '\0') {
-        char c = *msg;
-        cursor('e');
-        if (c == '\n') {
-            c_x = 0;
-            c_y += 8;
-        } else {
-            vesa_draw_char_34(c, c_x, c_y, 0xFFFF00, 0x000000);
-            c_x += 8;
-            if (c_x >= SCREEN_W) {
-                c_x = 0;
-                c_y += 8;
-            }
-        }
-        if (c_y >= SCREEN_H) {
-            c_y = 0;
-            vesa_clear(0x000000);
-        }
-        msg++;
-    }
-    cursor('d');
-}
-
-void klog_orange(const char* msg) {
-    while (*msg != '\0') {
-        char c = *msg;
-        cursor('e');
-        if (c == '\n') {
-            c_x = 0;
-            c_y += 8;
-        } else {
-            vesa_draw_char_34(c, c_x, c_y, 0xFFA500, 0x000000);
-            c_x += 8;
-            if (c_x >= SCREEN_W) {
-                c_x = 0;
-                c_y += 8;
-            }
-        }
-        if (c_y >= SCREEN_H) {
-            c_y = 0;
-            vesa_clear(0x000000);
-        }
-        msg++;
-    }
-    cursor('d');
-}
-
-void kklog_red(const char* msg) {
-    while (*msg != '\0') {
-        char c = *msg;
-        cursor('e');
-        if (c == '\n') {
-            c_x = 0;
-            c_y += 8;
-        } else {
-            vesa_draw_char_34(c, c_x, c_y, 0xFFFFFF, 0xFF0000);
-            c_x += 8;
-            if (c_x >= SCREEN_W) {
-                c_x = 0;
-                c_y += 8;
-            }
-        }
-        if (c_y >= SCREEN_H) {
-            c_y = 0;
-            vesa_clear(0x000000);
-        }
-        msg++;
-    }
-    cursor('e');
-    klog("\n");
-}
-
-void klog_status(const char *status_str, char color_char) {
-    if (color_char == 'r') {
-        kklog_red(status_str);
-    }
-    else if (color_char == 'g') {
-        kklog_green(status_str);
-    }
-    else {
-        kklog(status_str);
-    }
+/* color is a 0xRRGGBB value now instead of a single-letter code. */
+void klog_status(const char *status_str, uint32_t color) {
+    kklog_color(status_str, color);
 }

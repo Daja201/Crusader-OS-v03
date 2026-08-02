@@ -63,8 +63,8 @@ void identify_disk() {
         klog("size (bytes):"); kklog(buf);   
         klog("FS superblock total_blocks:");
         kklogf("%llu", (unsigned long long)g_superblock.total_blocks);
-        if (g_superblock.magic != 0x5A4C534A); kklog_red("drive is't properly formatted, use 'format' to format it");  
-        if (g_superblock.magic == 0x5A4C534A); kklog_green("drive formatted properly");
+        if (g_superblock.magic != 0x5A4C534A) kklog_color("drive is't properly formatted, use 'format' to format it", 0xFF0000);
+        if (g_superblock.magic == 0x5A4C534A) kklog_color("drive formatted properly", 0x00FF00);
     }
     klog("\n");
 }
