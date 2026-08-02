@@ -36,18 +36,10 @@ $(ISO): $(KERNEL)
 	echo "set timeout=5" > $(ISO_DIR)/boot/grub/grub.cfg
 	echo "insmod all_video" >> $(ISO_DIR)/boot/grub/grub.cfg
 	echo "set default=1" >> $(ISO_DIR)/boot/grub/grub.cfg
-	
-	#TEXT MODE
-	#echo "menuentry 'Crusader OS (Text Mode)' {" >> $(ISO_DIR)/boot/grub/grub.cfg
-	#echo "  terminal_output console" >> $(ISO_DIR)/boot/grub/grub.cfg
-	#echo "  set gfxpayload=text" >> $(ISO_DIR)/boot/grub/grub.cfg
-	#echo "  multiboot /boot/kernel.elf text" >> $(ISO_DIR)/boot/grub/grub.cfg
-	#echo "  boot" >> $(ISO_DIR)/boot/grub/grub.cfg
-	#echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg
 
 	#GRAPHICAL MODE
 	echo "menuentry 'Crusader OS' {" >> $(ISO_DIR)/boot/grub/grub.cfg
-	echo "  set gfxpayload=1280x720x32" >> $(ISO_DIR)/boot/grub/grub.cfg
+	echo "  set gfxpayload=1920x1080x32" >> $(ISO_DIR)/boot/grub/grub.cfg
 	echo "  multiboot /boot/kernel.elf" >> $(ISO_DIR)/boot/grub/grub.cfg
 	echo "  boot" >> $(ISO_DIR)/boot/grub/grub.cfg
 	echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg
@@ -57,8 +49,8 @@ $(ISO): $(KERNEL)
 clean:
 	rm -f *.o $(KERNEL) $(ISO)
 	rm -rf $(ISO_DIR)
-	rm disk.img
-	rm disk2.img
+	-rm -f disk.img
+	-rm -f disk2.img
 run:
 	qemu-system-i386 -cdrom os.iso \
 		-drive file=disk.img,format=raw,bus=0,unit=0,media=disk \
@@ -77,8 +69,6 @@ hd:
 	hexdump -C disk.img | less
 a:
 	make clean
-	rm disk.img
-	rm disk2.img
 	make dd128
 	make dd_second
 	make 

@@ -37,9 +37,6 @@ void system_main_task() {
         rtc_get_datetime(&y, &m, &d, &h, &min, &sec);
         if (sec != last_sec) {
             last_sec = sec;
-            clock(); 
-            free_ram();
-            needs_redraw = 1;
         }
         if (needs_redraw) {
             cursor('d');
@@ -57,13 +54,11 @@ void kmain(unsigned long mb_magic, unsigned long mb_info) {
     vesa_init_from_params(boot_fb_addr, boot_fb_width, boot_fb_height, boot_fb_bpp, boot_fb_pitch);
     extern void init_paging(uint32_t, uint32_t, uint32_t, uint32_t);
     init_paging(boot_fb_addr, boot_fb_width, boot_fb_height, boot_fb_bpp);
-    gui();
+    vesa_clear(0x000000);
     c_x = 0;
     c_y = 0;
     logo();
     init_fs();
-    verse();
-    appname("TERMINAL");
     klog("\n");
     klog_yellow("CRUSADER>> ");
     klog_status("BOOTED", 'b');

@@ -26,8 +26,8 @@ section .multiboot
     
 ; Video mode setup
     dd 0    
-    dd 1280  ; Width
-    dd 720  ; Height
+    dd 1920  ; Width
+    dd 1080  ; Height
     dd 32   ; Depth
 
 section .bss

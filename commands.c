@@ -20,7 +20,6 @@
 #include "ac97.h"
 #include "speaker.h"
 #include "task.h"
-#include "templar.h"
 #define CHUNK_SIZE 65532
 //extern pci_device_t g_dev;
 extern fs_device_t g_drives[MAX_DRIVES];
@@ -343,6 +342,7 @@ void cmd_time(int argc, char** argv) {
     klog_green("\n");
 }
 
+/**
 void cmd_note(int argc, char** argv) {
     if (argc < 3) {
         kklog("usage: note <c/d> <name> <content>\n");
@@ -369,7 +369,7 @@ void cmd_note(int argc, char** argv) {
     else {
         kklog("usage: note <c/d> <name> <content>\n"); 
     }
-}
+} */
 
 void cmd_format(int argc, char** argv) {
     format_fs();
@@ -500,7 +500,7 @@ void cmd_cd(int argc, char** argv) {
         kklog("Error: Directory not found.");
     }
 }
-
+/** 
 void cmd_open(int argc, char** argv) {
     if (argc < 2) {
         kklog("Usage: open <filename>\n");
@@ -528,6 +528,7 @@ void cmd_open(int argc, char** argv) {
         kklog("Error: Unsupported file type.\n");
     }
 }
+*/
 
 void cmd_playraw() {
     prep_play();
@@ -572,14 +573,14 @@ command_t commands[] = {
     {"time", cmd_time},
     {"format", cmd_format},
     {"qformat", cmd_qformat},
-    {"note", cmd_note},
+//    {"note", cmd_note},
     {"use", cmd_usedisk},
     {"mem", cmd_mem},
     {"play97", cmd_play97},
     {"shutdown", cmd_shutdown},
     {"app", cmd_app},
-    {"open", cmd_open},
-    //{"open", cmd_open},
+//    {"open", cmd_open},
+//    {"open", cmd_open},
     {"mf", cmd_mf},
     {"cd", cmd_cd},
     //{"open", cmd_open},
