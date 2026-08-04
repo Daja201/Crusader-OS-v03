@@ -2,6 +2,7 @@
 #include "font.h"
 #include <stdint.h>
 #include <string.h>
+
 int c_x = 0;
 int c_y = 0;
 int vesa_ready = 0;
@@ -20,6 +21,18 @@ void vesa_init_from_params(uint32_t phys_addr, uint32_t width, uint32_t height, 
     fb_pitch = pitch ? pitch : (width * ((bpp + 7) / 8));
     back = (uint8_t *)0x800000;
     vesa_ready = 1;
+}
+
+static void *vesa_memmove(void *dst, const void *src, uint32_t n) {
+    uint8_t *d = (uint8_t*)dst;
+    const uint8_t *s = (const uint8_t*)src;
+    if (d == s || n == 0) return dst;
+    if (d < s) {
+        for (uint32_t i = 0; i < n; i++) d[i] = s[i];
+    } else {
+        for (uint32_t i = n; i > 0; i--) d[i - 1] = s[i - 1];
+    }
+    return dst;
 }
 
 static inline void put_pixel_32(int x, int y, uint32_t color) {
@@ -77,6 +90,26 @@ void vesa_clear(uint32_t color) {
 void vesa_swap(void) {
     if (!vesa_ready || !back) return;
     memcpy((void*)lfb, (void*)back, fb_height * fb_pitch);
+}
+
+void vesa_scroll(int lines) {
+    if (!vesa_ready) return;
+    if (lines <= 0) return;
+    if ((uint32_t)lines >= fb_height) {
+        vesa_clear(0x000000);
+        return;
+    }
+    uint32_t bytes = (uint32_t)lines * fb_pitch;
+    uint32_t remaining = (fb_height - (uint32_t)lines) * fb_pitch;
+
+    if (fb_bpp == 8) {
+        vesa_memmove((void*)lfb, (void*)(lfb + bytes), remaining);
+        memset((void*)(lfb + remaining), 0, bytes);
+    } else {
+        vesa_memmove(back, back + bytes, remaining);
+        memset(back + remaining, 0, bytes);
+        vesa_swap();
+    }
 }
 
 void vesa_draw_char(char c, int x, int y, uint32_t fg_color, uint32_t bg_color) {

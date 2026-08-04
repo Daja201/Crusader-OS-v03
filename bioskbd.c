@@ -78,11 +78,25 @@ char bios_getchar_nonblocking(void) {
     if (!bios_has_char()) return 0;
     unsigned char sc = read_scancode();
     char c = 0;
+
     if (sc == 0xE0) { is_extended = 1; return 0; }
+
+    if (sc & 0x80) {
+        unsigned char released = sc & 0x7F;
+        if (released == 0x2A || released == 0x36) shift_pressed = 0;
+        is_extended = 0;
+        return 0;
+    }
+
     if (sc == 0x2A || sc == 0x36) { shift_pressed = 1; return 0; }
-    if (sc == (0x2A | 0x80) || sc == (0x36 | 0x80)) { shift_pressed = 0; return 0; }
-    if (sc & 0x80) { is_extended = 0; return 0; }
-    if (is_extended) { is_extended = 0; return 0; }
+
+    if (is_extended) {
+        is_extended = 0;
+        if (sc == 0x48) return (char)1;
+        if (sc == 0x50) return (char)2;
+        return 0;
+    }
+
     if (sc < 128) {
         c = shift_pressed ? map_upper[sc] : map_lower[sc];
     }

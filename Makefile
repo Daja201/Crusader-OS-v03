@@ -65,11 +65,13 @@ dd128:
 	dd if=/dev/zero of=disk.img bs=1M count=128 status=progress
 dd4:
 	dd if=/dev/zero of=disk.img bs=1M count=4 status=progress
+dd1:
+	dd if=/dev/zero of=disk.img bs=1GB count=1 status=progress
 hd:
 	hexdump -C disk.img | less
 a:
 	make clean
-	make dd128
+	make dd1
 	make dd_second
 	make 
 	make run

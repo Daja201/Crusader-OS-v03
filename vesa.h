@@ -4,6 +4,7 @@
 extern int boot_has_fb;
 extern int c_x;
 extern int c_y;
+void vesa_scroll(int lines);
 void vesa_init_from_params(uint32_t phys_addr, uint32_t width, uint32_t height, uint32_t bpp, uint32_t pitch);
 void vesa_putpixel(int x, int y, uint32_t color);
 void vesa_putpixel_34(int x, int y, uint32_t color);

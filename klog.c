@@ -14,12 +14,6 @@
 #define SCREEN_W 1920
 #define SCREEN_H 1080
 
-/* ------------------------------------------------------------------ */
-/* Generic colour-aware primitives                                    */
-/* ------------------------------------------------------------------ */
-
-/* Draws msg in the given foreground colour on a black background,
- * without a trailing newline. */
 void klog_color(const char* msg, uint32_t color) {
     while (*msg != '\0') {
         char c = *msg;
@@ -36,15 +30,14 @@ void klog_color(const char* msg, uint32_t color) {
             }
         }
         if (c_y >= SCREEN_H) {
-            c_y = 0;
-            vesa_clear(0x000000);
+            vesa_scroll(8);
+            c_y -= 8;
         }
         msg++;
     }
     cursor('d');
 }
 
-/* Same as klog_color, but appends a newline afterwards. */
 void kklog_color(const char* msg, uint32_t color) {
     klog_color(msg, color);
     klog("\n");
@@ -118,7 +111,6 @@ static void vprintf_internal_color(const char *fmt, uint32_t color, va_list args
     }
 }
 
-/* printf-style logging in an arbitrary colour, no trailing newline. */
 void klogf_color(const char *fmt, uint32_t color, ...) {
     va_list args;
     va_start(args, color);
@@ -126,7 +118,6 @@ void klogf_color(const char *fmt, uint32_t color, ...) {
     va_end(args);
 }
 
-/* printf-style logging in an arbitrary colour, with trailing newline. */
 void kklogf_color(const char *fmt, uint32_t color, ...) {
     va_list args;
     va_start(args, color);
@@ -134,10 +125,6 @@ void kklogf_color(const char *fmt, uint32_t color, ...) {
     va_end(args);
     klog("\n");
 }
-
-/* ------------------------------------------------------------------ */
-/* Plain (white-on-black) logging                                     */
-/* ------------------------------------------------------------------ */
 
 static void vprintf_internal(const char *fmt, va_list args) {
     char buf[32];
@@ -240,8 +227,8 @@ void klog(const char* msg) {
         }
 
         if (c_y >= SCREEN_H) {
-            c_y = 0;
-            vesa_clear(0x000000);
+            vesa_scroll(8);
+            c_y -= 8;
         }
 
         msg++;
@@ -275,10 +262,6 @@ void kklogf(const char *fmt, ...) {
     klog("\n");
 }
 
-/* ------------------------------------------------------------------ */
-/* Boot logo                                                           */
-/* ------------------------------------------------------------------ */
-
 void logo() {
     klog_color("                                                                                              ", 0xFF0000);
     char *argv[] = { (char*)"time", NULL };
@@ -298,11 +281,6 @@ void logo() {
     kklog_color("                                                                                                                       ", 0xFF0000);
 }
 
-/* ------------------------------------------------------------------ */
-/* Status helper                                                       */
-/* ------------------------------------------------------------------ */
-
-/* color is a 0xRRGGBB value now instead of a single-letter code. */
 void klog_status(const char *status_str, uint32_t color) {
     kklog_color(status_str, color);
 }

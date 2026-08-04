@@ -1,6 +1,7 @@
 #include <string.h>
 #include "pmm.h" 
 #include "vesa.h"
+
 uint32_t next_free_page = 0x1000000;
 uint32_t* page_directory = (uint32_t *)0x10000;
 
@@ -16,6 +17,7 @@ void map_page(uint32_t phys, uint32_t virt, uint32_t flags) {
     uint32_t* page_table = (uint32_t*)(page_directory[pd_index] & ~0xFFF);
     page_table[pt_index] = (phys & ~0xFFF) | flags;
 }
+
 void init_paging(uint32_t fb_phys_addr, uint32_t fb_width, uint32_t fb_height, uint32_t fb_bpp) {
     page_directory = (uint32_t*)0x10000; 
     next_free_page = 0x1000000;

@@ -1,5 +1,6 @@
 #include "string.h"
 #include "stdint.h"
+
 int strcmp(const char* a, const char* b) {
     while (*a && (*a == *b)) {
         a++;
