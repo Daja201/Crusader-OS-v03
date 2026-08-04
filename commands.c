@@ -58,7 +58,7 @@ static uint8_t raw_wav_buffer[CHUNK_SECTORS * 512] __attribute__((aligned(8)));
 
 void cmd_help(int argc, char** argv) {
     kklog_color("Welcome to Crusader OS made by David Zapletal", 0xFF0000);
-    kklog_color("Source code shoould be available on: https://github.com/Daja201/Crusader-OS-v02", 0xFF0000);
+    kklog_color("Source code shoould be available on: https://github.com/Daja201/Crusader-OS-v03", 0xFF0000);
     kklog_color("Feel free to copy and change source code for yourself.", 0xFF0000);
     kklog_color("Run command: 'lib' for info about commands and whole system.", 0xFF0000);
 }
@@ -173,15 +173,26 @@ void cmd_ld(int argc, char** argv) {
             klogf("Total Blocks: %d\n", temp_sb->total_blocks);
             klogf("Inodes:       %d used/total\n", temp_sb->inode_count);
             klogf("Data Start:   LBA %d\n", temp_sb->data_start);
-        } else if (temp_sb->magic == 0x55AA)  {
+        } else if (sector_buf[510] == 0x55 && sector_buf[511] == 0xAA &&
+                   (*(uint32_t*)(sector_buf + 36)) != 0) {
+            uint16_t bytes_per_sector;
+            uint8_t  sectors_per_cluster;
+            uint32_t fat_size_32, root_cluster, total_sectors_32;
+            memcpy(&bytes_per_sector, sector_buf + 11, 2);
+            sectors_per_cluster = sector_buf[13];
+            memcpy(&fat_size_32, sector_buf + 36, 4);
+            memcpy(&root_cluster, sector_buf + 44, 4);
+            memcpy(&total_sectors_32, sector_buf + 32, 4);
             if (i == original_drive) {
-                kklog_color("Status:       Formatted FAT [CURRENT]", 0x00FF00);
+                kklog_color("Status:       Formatted FAT32 [CURRENT]", 0x00FF00);
             } else {
-                kklog_color("Status:       Formatted FAT", 0x00FF00);
+                kklog_color("Status:       Formatted FAT32", 0x00FF00);
             }
-            klogf("Total Blocks: %d\n", temp_sb->total_blocks);
-            klogf("Inodes:       %d used/total\n", temp_sb->inode_count);
-            klogf("Data Start:   LBA %d\n", temp_sb->data_start);
+            klogf("Bytes/Sector: %d\n", bytes_per_sector);
+            klogf("Sect/Cluster: %d\n", sectors_per_cluster);
+            klogf("FAT Size:     %d sectors\n", fat_size_32);
+            klogf("Root Cluster: %d\n", root_cluster);
+            klogf("Total Sect:   %d\n", total_sectors_32);
         } else {
             if (i == original_drive) {
                 kklog_color("Status:       NOT FORMATTED [CURRENT]", 0xFF0000);

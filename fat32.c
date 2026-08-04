@@ -177,6 +177,25 @@ static void for_each_dirent(uint32_t dir_cluster, dirent_cb cb, void* ctx) {
     }
 }
 
+#define FAT32_CLN_SHUT_BIT_MASK 0x08000000
+#define FAT32_HRD_ERR_BIT_MASK  0x04000000
+
+static void fat32_set_shutdown_bit(int clean) {
+    uint32_t fat_offset = 1 * 4;
+    uint32_t off = fat_offset % FAT32_SECTOR_SIZE;
+    uint8_t buf[FAT32_SECTOR_SIZE];
+    for (uint32_t f = 0; f < g_fat32.num_fats; f++) {
+        uint32_t sector = g_fat32.fat_begin_lba + f * g_fat32.fat_size_sectors + (fat_offset / FAT32_SECTOR_SIZE);
+        block_read(sector, buf);
+        uint32_t val;
+        memcpy(&val, buf + off, 4);
+        if (clean) val |= FAT32_CLN_SHUT_BIT_MASK;
+        else       val &= ~FAT32_CLN_SHUT_BIT_MASK;
+        memcpy(buf + off, &val, 4);
+        block_write(sector, buf);
+    }
+}
+
 int fat32_mount(uint32_t partition_lba) {
     uint8_t sec[FAT32_SECTOR_SIZE];
     block_read(partition_lba, sec);
@@ -213,11 +232,15 @@ int fat32_mount(uint32_t partition_lba) {
     }
 
     g_fat32.mounted = 1;
+    fat32_set_shutdown_bit(0);
     kklog_color("FAT32 volume mounted", 0x00FF00);
     return 0;
 }
 
 void fat32_unmount(void) {
+    if (g_fat32.mounted) {
+        fat32_set_shutdown_bit(1);
+    }
     g_fat32.mounted = 0;
 }
 

@@ -52,7 +52,7 @@ clean:
 	-rm -f disk.img
 	-rm -f disk2.img
 run:
-	qemu-system-i386 -cdrom os.iso \
+	qemu-system-i386 -cdrom os.iso -boot d \
 		-drive file=disk.img,format=raw,bus=0,unit=0,media=disk \
 		-drive file=music.wav,format=raw,bus=0,unit=1,media=disk \
 		-audiodev pa,id=snd0 -device ac97,audiodev=snd0 \
