@@ -44,8 +44,7 @@ $(ISO): $(KERNEL)
 	echo "  boot" >> $(ISO_DIR)/boot/grub/grub.cfg
 	echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISO) $(ISO_DIR)
-	
-	echo "MAKE HAS DONE EVERYTHING FOR YOU, DRIVE SIZE: 128MB"
+
 clean:
 	rm -f *.o $(KERNEL) $(ISO)
 	rm -rf $(ISO_DIR)
@@ -56,7 +55,8 @@ run:
 		-drive file=disk.img,format=raw,bus=0,unit=0,media=disk \
 		-drive file=music.wav,format=raw,bus=0,unit=1,media=disk \
 		-audiodev pa,id=snd0 -device ac97,audiodev=snd0 \
-		-m 4G -vga std -serial stdio -enable-kvm
+		-m 4G -vga std -serial stdio -enable-kvm \
+		-display gtk,zoom-to-fit=on,full-screen=on   
 dd_second:
 	dd if=/dev/zero of=disk2.img bs=1M count=64 status=progress
 dd32:

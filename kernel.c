@@ -58,15 +58,21 @@ void kmain(unsigned long mb_magic, unsigned long mb_info) {
     c_x = 0;
     c_y = 0;
     logo();
+    klog_status("PAGING OK", 0x00FF00);
+    klog_status("VESA OK", 0x00FF00);
+    drives();
     init_fs();
-    klog("\n");
-    klog_color("CRUSADER>> ", 0xFFFF00);
-    klog_status("BOOTED", 0x0000FF);
+    klog_status("FILESYSTEM OK", 0x00FF00);
     timer_init(1000); 
     init_multitasking();
     create_task(system_main_task); 
-    klog_status("MULTITASKING STARTED", 0x0000FF);
+    klog_status("MULTITASKING OK", 0x00FF00);
     ac97_init();
+    klog_status("AC97 DRIVER OK", 0x00FF00);
+    char *argv[] = { (char*)"time", NULL };
+    cmd_time(1, argv);
+    klog("\n");
+    klog_color("CRUSADER>> ", 0xFFFF00);
     asm volatile("sti");
     while (1) {
         asm volatile("hlt");

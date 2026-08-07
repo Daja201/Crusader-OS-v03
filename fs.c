@@ -211,7 +211,7 @@ static uint32_t ata_get_total_sectors_dev(uint16_t base, uint8_t is_slave) {
 }
 
 void format_fs() {
-    klog_status("FORMATTING STARTED", 0x0000FF);
+    klog_status("FORMATTING STARTED", 0x00FF00);
     select_drive(g_drives[g_current_drive].ata_base, g_drives[g_current_drive].is_slave);
     g_current_dir = 0;
     g_superblock.magic = 0x5A4C534A;
@@ -239,8 +239,10 @@ void format_fs() {
     block_write(SUPERBLOCK_LBA, sb_buf);
     memset(block_bitmap, 0, BLOCK_BITMAP_MAX_SIZE);
     memset(inode_bitmap, 0, INODE_BITMAP_SIZE);
-    for (uint32_t i = 0; i < g_superblock.data_start; i++) {
-        set_block_bitmap_bit(i);
+    uint8_t zero_sector[SECTOR_SIZE];
+    memset(zero_sector, 0, SECTOR_SIZE);
+    for (uint32_t lba = g_superblock.data_start; lba < g_superblock.total_blocks; lba++) {
+        block_write(lba, zero_sector);
     }
     save_block_bitmap();
     save_inode_bitmap();
@@ -253,7 +255,7 @@ void format_fs() {
 void qformat_fs(void) {
     uint8_t zero_sector[SECTOR_SIZE];
     memset(zero_sector, 0, SECTOR_SIZE);
-    klog_status("QUICK FORMATTING STARTED", 0x0000FF);
+    klog_status("QUICK FORMATTING STARTED", 0x00FF00);
     select_drive(g_drives[g_current_drive].ata_base, g_drives[g_current_drive].is_slave);
     g_current_dir = 0;
     g_superblock.magic = 0x5A4C534A;
@@ -313,7 +315,7 @@ void drives() {
             uint32_t sectors = ata_get_total_sectors_dev(base, s);
             if (sectors > 0 && sectors < 0xFFFFFFF) { 
                 if (g_active_drives == 0) {
-                    kklogf_color("Disk 0x%x, Slave %d", 0x00FF00, (uint32_t)base, (uint32_t)s);
+                    kklogf_color("Disk 0x%x, Slave %d", 0x009000, (uint32_t)base, (uint32_t)s);
                 }
                 g_drives[g_active_drives].ata_base = base;
                 g_drives[g_active_drives].is_slave = s;
@@ -721,6 +723,9 @@ int fs_create_dir(const char* name, uint32_t parent_inode_idx) {
     if (b == 0) { free_inode(idx); return -1; }
     node.direct[0] = (uint32_t)b;
     write_inode(idx, &node);
+    uint8_t zero_buf[SECTOR_SIZE];
+    memset(zero_buf, 0, SECTOR_SIZE);
+    block_write((uint32_t)b, zero_buf);
     inode_t parent;
     read_inode(parent_inode_idx, &parent);
     dir_add(parent_inode_idx, &parent, name, (uint32_t)idx);

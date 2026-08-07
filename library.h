@@ -1,1 +1,1 @@
-void library(void);
+void library(int argc, char** argv);

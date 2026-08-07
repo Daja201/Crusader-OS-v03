@@ -219,10 +219,6 @@ void cmd_reboot(int argc, char** argv) {
 
 }
 
-void cmd_lib(int argc, char** argv) {
-    library();
-}
-
 void cmd_read_custom(int argc, char** argv) {
     if (argc < 2) {
         kklog("Usage: read <filename>");
@@ -270,7 +266,7 @@ void cmd_ls_custom(int argc, char** argv) {
         block_read(block_lba, buf);
         struct dirent* entries = (struct dirent*)buf;
         for (int i = 0; i < entry_count; i++) {
-            if (entries[i].inode != 0) {
+            if (entries[i].inode != 0 && entries[i].inode < g_superblock.inode_count) {
                 inode_t file_node;
                 read_inode(entries[i].inode, &file_node);
                 klog("  ");
@@ -350,12 +346,12 @@ void cmd_time(int argc, char** argv) {
     int hour, min, sec;
     rtc_get_datetime(&year, &month, &day, &hour, &min, &sec);
     char b[8];
-    klog_color("RTC: ", 0x00FF00);
-    itoa(year, b, 10); klog_color(b, 0x00FF00);;itoa(month, b, 10);klog_color(" ", 0x00FF00); klog_color(b, 0x00FF00);itoa(day, b, 10);klog_color(" ", 0x00FF00); klog_color(b, 0x00FF00); klog_color(" ", 0x00FF00);
-    itoa(hour, b, 10); klog_color(b, 0x00FF00); klog_color(":", 0x00FF00);
-    itoa(min, b, 10); klog_color(b, 0x00FF00); klog_color(":", 0x00FF00);
-    itoa(sec, b, 10); klog_color(b, 0x00FF00);
-    klog_color("\n", 0x00FF00);
+    klog_color("RTC: ", 0x009000);
+    itoa(year, b, 10); klog_color(b, 0x009000);;itoa(month, b, 10);klog_color(" ", 0x009000); klog_color(b, 0x009000);itoa(day, b, 10);klog_color(" ", 0x009000); klog_color(b, 0x009000); klog_color(" ", 0x009000);
+    itoa(hour, b, 10); klog_color(b, 0x009000); klog_color(":", 0x009000);
+    itoa(min, b, 10); klog_color(b, 0x009000); klog_color(":", 0x009000);
+    itoa(sec, b, 10); klog_color(b, 0x009000);
+    klog_color("\n", 0x009000);
 }
 
 typedef enum { FS_KIND_CUSTOM = 0, FS_KIND_FAT32 = 1 } fs_kind_t;
@@ -783,7 +779,7 @@ command_t commands[] = {
     {"fd", cmd_find},
     {"read", cmd_read},
     {"ls", cmd_ls},
-    {"lib", cmd_lib},
+    {"lib", library},
     {"wr", cmd_wr},
     {"dl", cmd_dl},
     {"time", cmd_time},

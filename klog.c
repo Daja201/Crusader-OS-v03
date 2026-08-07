@@ -263,11 +263,8 @@ void kklogf(const char *fmt, ...) {
 }
 
 void logo() {
-    klog_color("                                                                                              ", 0xFF0000);
-    char *argv[] = { (char*)"time", NULL };
-    cmd_time(1, argv);
-    klog_color("     __                                                                                       ", 0xFF0000);
-    drives();
+    kklog_color("                                                                                                                        ", 0xFF0000);
+    kklog_color("     __                                                                                                                 ", 0xFF0000);
     kklog_color("   ,/ _~.                          |\\                    ,-||-,     -_-/      ------          Welcome to Crusader OS   ", 0xFF0000);
     kklog_color("  (' /|                       _     \\\\                  ('|||  )   (_ /         ||            An hobby operating system", 0xFF0000);
     kklog_color(" ((  ||   ,._-_ \\\\ \\\\  _-_,  < \\,  / \\\\  _-_  ,._-_    (( |||--)) (_ --_   |    ||    |       made by:                 ", 0xFF0000);
@@ -282,5 +279,7 @@ void logo() {
 }
 
 void klog_status(const char *status_str, uint32_t color) {
+    klog('\n');
+    klog_color("sysmsg: ", color);
     kklog_color(status_str, color);
 }
