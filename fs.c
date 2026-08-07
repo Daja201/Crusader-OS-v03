@@ -691,6 +691,12 @@ uint32_t fs_read(uint32_t inode_idx, inode_t* node, uint32_t offset, uint32_t si
 
 uint32_t fs_create_file(const char* name, const char* main_tag) {
     if (!main_tag || strlen(main_tag) == 0) return (uint32_t)-1;
+    inode_t existing_check;
+    read_inode(g_current_dir, &existing_check);
+    if (dir_lookup(&existing_check, name) >= 0) {
+        klog_status("FILE ALREADY EXISTS", 0xFF0000);
+        return (uint32_t)-1;
+    }
     int idx = alloc_inode();
     if (idx < 0) return (uint32_t)-1;
     inode_t node;
@@ -713,6 +719,12 @@ uint32_t fs_create_file(const char* name, const char* main_tag) {
 }
 
 int fs_create_dir(const char* name, uint32_t parent_inode_idx) {
+    inode_t existing_check;
+    read_inode(parent_inode_idx, &existing_check);
+    if (dir_lookup(&existing_check, name) >= 0) {
+        klog_status("DIRECTORY ALREADY EXISTS", 0xFF0000);
+        return -1;
+    }
     int idx = alloc_inode();
     if (idx < 0) return -1;
     inode_t node;
