@@ -13,6 +13,10 @@
 #include "task.h"
 #include "io.h"
 #include "ac97.h"
+#include "usb.h"
+
+void usb_pci_init(void);
+void usb_poll_all(void);
 volatile uint32_t timer_ticks = 0;
 
 void timer_init(uint32_t frequency) {
@@ -26,6 +30,12 @@ void system_main_task() {
     int last_sec = -1;
     for (;;) {
         int needs_redraw = 0;
+        extern volatile int usb_kbd_dirty;
+        usb_poll_all();
+        if (usb_kbd_dirty) {
+            usb_kbd_dirty = 0;
+            needs_redraw = 1;
+        }
         if (bios_has_char()) { 
             char c = bios_getchar_echo(); 
             if (c != 0) {
@@ -69,6 +79,8 @@ void kmain(unsigned long mb_magic, unsigned long mb_info) {
     klog_status("MULTITASKING OK", 0x00FF00);
     ac97_init();
     klog_status("AC97 DRIVER OK", 0x00FF00);
+    usb_pci_init();
+    klog_status("USB OK", 0x00FF00);
     char *argv[] = { (char*)"time", NULL };
     cmd_time(1, argv);
     klog("\n");

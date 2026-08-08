@@ -39,7 +39,7 @@ $(ISO): $(KERNEL)
 
 	#GRAPHICAL MODE
 	echo "menuentry 'Crusader OS' {" >> $(ISO_DIR)/boot/grub/grub.cfg
-	echo "  set gfxpayload=1920x1080x32" >> $(ISO_DIR)/boot/grub/grub.cfg
+	echo "  set gfxpayload1920x1080x32" >> $(ISO_DIR)/boot/grub/grub.cfg
 	echo "  multiboot /boot/kernel.elf" >> $(ISO_DIR)/boot/grub/grub.cfg
 	echo "  boot" >> $(ISO_DIR)/boot/grub/grub.cfg
 	echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg

@@ -21,6 +21,8 @@
 #include "speaker.h"
 #include "task.h"
 #include "fat32.h"
+#include "usb.h"
+#include "usbhid.h"
 
 #define CHUNK_SIZE 65532
 extern fs_device_t g_drives[MAX_DRIVES];
@@ -322,12 +324,12 @@ void cmd_shutdown(int argc, char** argv) {
     save_inode_bitmap();
     busy_ms(1000);
     asm volatile ("cli");
-    vesa_draw_rec(0, 0, 1280, 1024, 0x000000);
+    vesa_draw_rec(0, 0, 1920, 1080, 0x000000);
     const char* verse = "When you lie down, you will not be afraid. Yes, you will lie down, and your sleep will be sweet. (PROVERBS 3:24)";
     const char* msg = "IT IS NOW SAFE TO TURN OFF YOUR COMPUTER. GOOD NIGHT :)";
-    int start_x_msg = (1280 - (strlen(msg) * 8)) / 2;
+    int start_x_msg = (1920 - (strlen(msg) * 8)) / 2;
     int start_y_msg = 350;
-    int start_x_verse = (1280 - (strlen(verse) * 8)) / 2;
+    int start_x_verse = (1920 - (strlen(verse) * 8)) / 2;
     int start_y_verse = start_y_msg - 20;
     for(int i = 0; verse[i] != '\0'; i++) {
         vesa_draw_char(verse[i], start_x_verse + (i * 8), start_y_verse, 0x2BC7FB, 0x000000);
@@ -769,6 +771,73 @@ void playrawjmp() {
     create_task(cmd_playraw);
 }
 
+void cmd_usb(int argc, char** argv) {
+    int count = usb_device_count();
+    if (count == 0) {
+        kklog_color("No USB devices connected.", 0xFF0000);
+        return;
+    }
+    klogf_color("Connected USB devices: %d\n", 0x00FF00, count);
+    for (int i = 0; i < count; i++) {
+        usb_device_t* dev = usb_get_device(i);
+        if (!dev) continue;
+        klog("\n");
+        klogf_color("Device %d\n", 0xFFFF00, i);
+        klogf("  Address:      %d\n", dev->address);
+        klogf("  Speed:        %s\n", usb_speed_str(dev->speed));
+        klogf("  Vendor ID:    0x%x\n", dev->dev_desc.idVendor);
+        klogf("  Product ID:   0x%x\n", dev->dev_desc.idProduct);
+        klogf("  USB Version:  0x%x\n", dev->dev_desc.bcdUSB);
+        klogf("  Class:        %s (0x%x)\n", usb_class_str(dev->iface_class), dev->iface_class);
+        klogf("  Subclass:     0x%x\n", dev->iface_subclass);
+        klogf("  Protocol:     0x%x\n", dev->iface_protocol);
+        if (dev->hub_addr == 0) {
+            klogf("  Attached to:  root hub, port %d\n", dev->hub_port + 1);
+        } else {
+            klogf("  Attached to:  hub @addr %d, port %d\n", dev->hub_addr, dev->hub_port + 1);
+        }
+        if (dev->ep_in_addr != 0) {
+            klogf("  IN Endpoint:  0x%x (maxpkt %d, interval %d)\n", dev->ep_in_addr, dev->ep_in_maxpkt, dev->ep_in_interval);
+        }
+    }
+}
+
+void cmd_hidraw(int argc, char** argv) {
+    int count = usbhid_raw_slot_count();
+    if (count == 0) {
+        kklog_color("No generic (non-boot-protocol) HID devices attached.", 0xFF0000);
+        return;
+    }
+    if (argc < 2) {
+        klogf_color("Generic HID devices: %d\n", 0x00FF00, count);
+        for (int i = 0; i < count; i++) {
+            usb_device_t* dev = usbhid_raw_slot_device(i);
+            if (!dev) continue;
+            klogf("  [%d] addr=%d vid=0x%x pid=0x%x\n", i, dev->address, dev->dev_desc.idVendor, dev->dev_desc.idProduct);
+        }
+        kklog("Usage: hidraw <index>  (prints one live report snapshot)\n");
+        return;
+    }
+    int idx = atoi(argv[1]);
+    uint8_t buf[64];
+    uint32_t update_count = 0;
+    int len = usbhid_raw_slot_report(idx, buf, sizeof(buf), &update_count);
+    if (len < 0) {
+        kklog_color("Invalid HID device index.", 0xFF0000);
+        return;
+    }
+    if (len == 0) {
+        kklog("No report received yet — move an axis or press a button.\n");
+        return;
+    }
+    klogf("Updates seen: %d, report length: %d\n", update_count, len);
+    kklog("Bytes: ");
+    for (int i = 0; i < len; i++) {
+        klogf("%x ", buf[i]);
+    }
+    klog("\n");
+}
+
 command_t commands[] = {
     {"help", cmd_help},
     {"clear", cmd_clear},
@@ -803,6 +872,8 @@ command_t commands[] = {
     {"mf", cmd_mf},
     {"cd", cmd_cd},
     {"play1", playrawjmp},
+    {"usb", cmd_usb},
+    {"hidraw", cmd_hidraw},
 };
 
 int command_count = sizeof(commands)/sizeof(command_t);
