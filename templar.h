@@ -1,1 +1,0 @@
-void templar_file();

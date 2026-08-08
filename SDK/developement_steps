@@ -3,13 +3,11 @@ File to write about next developement steps, simplified.
 booting sequence text for debug
 flashable iso (pendrive/cdvd) with install on drive
 better FS
-sound
-soundplaying control
+sound seeing playing now on vesa
 pictures
 video
 gpu drivers
 ring3
-usb support
 HID support
 cd/dvd support
 SATA
