@@ -13,9 +13,10 @@ static inline void outb(uint16_t port, uint8_t val) {
 }
 
 void task_exit() {
-    asm volatile("cli");
-    tasks[current_task].state = TASK_READY;
-    for(;;); 
+    tasks[current_task].state = TASK_DEAD;
+    for (;;) {
+        asm volatile("sti; hlt");
+    }
 }
 
 void init_multitasking() {
