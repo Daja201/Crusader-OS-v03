@@ -85,6 +85,7 @@ void kmain(unsigned long mb_magic, unsigned long mb_info) {
     cmd_time(1, argv);
     klog("\n");
     klog_color("CRUSADER>> ", 0xFFFF00);
+    vesa_swap();
     asm volatile("sti");
     while (1) {
         asm volatile("hlt");

@@ -26,7 +26,6 @@ void init_multitasking() {
 }
 
 uint32_t schedule_handler(uint32_t esp) {
-    outb(0x20, 0x20);
     system_ticks++;
     if (num_tasks <= 1) {
         return esp;

@@ -54,9 +54,12 @@ run:
 	qemu-system-i386 -cdrom os.iso -boot d \
 		-drive file=disk.img,format=raw,bus=0,unit=0,media=disk \
 		-drive file=music.wav,format=raw,bus=0,unit=1,media=disk \
-		-audiodev pa,id=snd0 -device ac97,audiodev=snd0 \
-		-m 4G -vga std -serial stdio -enable-kvm \
-		-display gtk,zoom-to-fit=on,full-screen=on   
+		-device pci-ohci,id=ohci \
+		-device usb-ehci,id=ehci \
+		-device usb-kbd,bus=ohci.0 \
+		-m 2G -vga std -serial stdio -enable-kvm \
+		-display gtk,zoom-to-fit=on,full-screen=on \
+		-d guest_errors,unimp,int -D /tmp/qemu-debug.log
 dd_second:
 	dd if=/dev/zero of=disk2.img bs=1M count=64 status=progress
 dd32:

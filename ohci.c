@@ -159,9 +159,21 @@ static int ohci_setup_interrupt_in(usb_hcd_t* hcdp, usb_device_t* dev, uint8_t e
     if (dev->speed == 1) ed->control |= OHCI_ED_SPEED_LOW;
     ed->head_td = (uint32_t)(uintptr_t)td;
     ed->tail_td = (uint32_t)(uintptr_t)tail;
-    ed->next_ed = hc->hcca->hcca_interrupt_table[0];
-
-    hc->hcca->hcca_interrupt_table[0] = (uint32_t)(uintptr_t)ed;
+    ed->next_ed = 0;
+    for (int i = 0; i < 32; i++) {
+        uint32_t existing_raw = hc->hcca->hcca_interrupt_table[i];
+        if (existing_raw == 0) {
+            hc->hcca->hcca_interrupt_table[i] = (uint32_t)(uintptr_t)ed;
+        } else {
+            ohci_ed_t* walk = (ohci_ed_t*)(uintptr_t)existing_raw;
+            while (walk->next_ed != 0 && (ohci_ed_t*)(uintptr_t)walk->next_ed != ed) {
+                walk = (ohci_ed_t*)(uintptr_t)walk->next_ed;
+            }
+            if (walk != ed) {
+                walk->next_ed = (uint32_t)(uintptr_t)ed;
+            }
+        }
+    }
     ohci_write(hc, OHCI_REG_CONTROL, ohci_read(hc, OHCI_REG_CONTROL) | OHCI_CTRL_PLE);
 
     ohci_intr_ctx_t* ctx = &g_intr_ctx[g_intr_ctx_count++];
@@ -187,12 +199,18 @@ void ohci_poll_interrupts(void) {
             if (cc == 0 || cc == 15) {
                 ctx->callback(ctx->dev, ctx->buf, actual);
             }
-            ctx->td->control = OHCI_TD_CC_MASK | OHCI_TD_DP_IN | OHCI_TD_DI_IMMEDIATE |
-                                ((ctx->td->control & OHCI_TD_T_MASK) ^ OHCI_TD_T_MASK & (OHCI_TD_T_DATA1)) | OHCI_TD_R;
-            ctx->td->control = OHCI_TD_CC_MASK | OHCI_TD_DP_IN | OHCI_TD_DI_IMMEDIATE | OHCI_TD_T_DATA0 | OHCI_TD_R;
+
+            ctx->ed->control |= OHCI_ED_SKIP;
+            asm volatile("" ::: "memory");
+
+            ctx->td->control = OHCI_TD_CC_MASK | OHCI_TD_DP_IN | OHCI_TD_DI_IMMEDIATE | OHCI_TD_R;
             ctx->td->cbp = (uint32_t)(uintptr_t)ctx->buf;
             ctx->td->buffer_end = (uint32_t)(uintptr_t)ctx->buf + ctx->maxpkt - 1;
+            ctx->td->next_td = ctx->ed->tail_td;
             ctx->ed->head_td = (uint32_t)(uintptr_t)ctx->td;
+
+            asm volatile("" ::: "memory");
+            ctx->ed->control &= ~OHCI_ED_SKIP;
         }
     }
 }
