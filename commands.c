@@ -850,7 +850,7 @@ void cmd_open(int argc, char** argv) {
     char* dot = strrchr(filename, '.');
     if (dot != NULL) {
         if (strcmp(dot, ".wav") == 0) {
-            play_wav_file(filename);
+            play_wav_file_jmp(filename);
         } 
         else if (strcmp(dot, ".txt") == 0) {
             cmd_read(argc, argv);
@@ -903,6 +903,8 @@ command_t commands[] = {
     {"usb", cmd_usb},
     {"hidraw", cmd_hidraw},
     {"open", cmd_open},
+    {"mustop", ac97_stop},
+    {"mupause", ac97_pause},
 };
 
 int command_count = sizeof(commands)/sizeof(command_t);

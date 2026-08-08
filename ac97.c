@@ -3,6 +3,7 @@
 #include "klog.h"
 #include "io.h"
 #include "fs.h"
+#include "task.h"
 #include <string.h>
 #include <stdint.h>
 
@@ -47,11 +48,11 @@ void ac97_stop(void) {
 }
 
 void ac97_pause(void) {
-    g_ac97_paused = 1;
-}
-
-void ac97_resume(void) {
-    g_ac97_paused = 0;
+    if(g_ac97_paused == 0) {
+        g_ac97_paused = 1;
+    } else {
+        g_ac97_paused = 0;
+    }
 }
 
 void ac97_set_volume(uint8_t vol_atten) {
@@ -213,6 +214,16 @@ int ac97_play_test_tone(void) {
     return 0;
 }
 
+static char g_pending_wav_path[128];
+static void play_wav_file_entry(void) {
+    play_wav_file(g_pending_wav_path);
+}
+void play_wav_file_jmp(const char* filename) {
+    strncpy(g_pending_wav_path, filename, sizeof(g_pending_wav_path) - 1);
+    g_pending_wav_path[sizeof(g_pending_wav_path) - 1] = '\0';
+    create_task(play_wav_file_entry);
+}
+
 int play_wav_file(const char* filename) {
     ac97_play_test_tone();
     if (ac97_init() != 0) {
@@ -299,8 +310,6 @@ int play_wav_file(const char* filename) {
             break;
         }
         while (g_ac97_paused && !g_ac97_stop_requested) {
-            /* Hold the run bit low so the codec stays parked on the
-             * current buffer instead of underrunning. */
             outb(nabm_port + 0x1B, 0x00);
             asm volatile("pause");
         }

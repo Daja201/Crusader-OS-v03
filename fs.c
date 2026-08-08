@@ -26,6 +26,9 @@
 #define ROOT_INODE 0
 #define PTRS_PER_BLOCK (SECTOR_SIZE / sizeof(uint32_t))
 
+static inline void disk_lock(void)   { asm volatile("cli"); }
+static inline void disk_unlock(void) { asm volatile("sti"); }
+
 uint32_t g_current_dir = 0;
 uint8_t inode_bitmap[INODE_BITMAP_SIZE];
 static uint16_t current_ata_base = ATA_PRIMARY;
@@ -664,9 +667,11 @@ int fs_delete_file(const char* name) {
 }
 
 uint32_t fs_read(uint32_t inode_idx, inode_t* node, uint32_t offset, uint32_t size, uint8_t* buffer) {
+    disk_lock();
     uint32_t bytes_read = 0;
     uint8_t sector_buf[512];
     if (offset >= node->size) {
+        disk_unlock();
         return 0;
     }
     if (offset + size > node->size) {
@@ -689,6 +694,7 @@ uint32_t fs_read(uint32_t inode_idx, inode_t* node, uint32_t offset, uint32_t si
         memcpy(buffer + bytes_read, sector_buf + offset_in_block, chunk_size);
         bytes_read += chunk_size;
     }
+    disk_unlock();
     return bytes_read;
 }
 
