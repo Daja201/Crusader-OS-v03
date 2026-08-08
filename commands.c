@@ -838,6 +838,28 @@ void cmd_hidraw(int argc, char** argv) {
     klog("\n");
 }
 
+void cmd_open(int argc, char** argv) {
+    if (argc < 2) {
+        kklogf("usage: open <file>\n");
+        return;
+    }
+    char* filename = argv[1];
+    char* dot = strrchr(filename, '.');
+    if (dot != NULL) {
+        if (strcmp(dot, ".wav") == 0) {
+            play_wav_file(filename);
+        } 
+        else if (strcmp(dot, ".txt") == 0) {
+            cmd_read(argc, argv);
+        } 
+        else {
+            klog_status("UNKNOWN EXTENSION", 0xFF0000);
+        }
+    } else {
+        klog_status("NO EXTENSION", 0xFF0000);
+    }
+}
+
 command_t commands[] = {
     {"help", cmd_help},
     {"clear", cmd_clear},
@@ -874,6 +896,7 @@ command_t commands[] = {
     {"play1", playrawjmp},
     {"usb", cmd_usb},
     {"hidraw", cmd_hidraw},
+    {"open", cmd_open},
 };
 
 int command_count = sizeof(commands)/sizeof(command_t);

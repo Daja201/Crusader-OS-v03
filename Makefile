@@ -54,6 +54,7 @@ run:
 	qemu-system-i386 -cdrom os.iso -boot d \
 		-drive file=disk.img,format=raw,bus=0,unit=0,media=disk \
 		-drive file=music.wav,format=raw,bus=0,unit=1,media=disk \
+		-audiodev pa,id=snd0 -device ac97,audiodev=snd0 \
 		-device pci-ohci,id=ohci \
 		-device usb-ehci,id=ehci \
 		-device usb-kbd,bus=ohci.0 \

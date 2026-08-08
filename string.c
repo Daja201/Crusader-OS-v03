@@ -55,6 +55,16 @@ void *memset(void *s, int c, size_t n) {
     return s;
 }
 
+int memcmp(const void *a, const void *b, size_t n) {
+    const unsigned char *pa = (const unsigned char*)a;
+    const unsigned char *pb = (const unsigned char*)b;
+    while (n--) {
+        if (*pa != *pb) return (int)*pa - (int)*pb;
+        pa++; pb++;
+    }
+    return 0;
+}
+
 char* itoa(int value, char* buffer, int base) {
     if (base < 2 || base > 16) {
         buffer[0] = 0;
