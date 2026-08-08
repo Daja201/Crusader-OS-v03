@@ -666,13 +666,6 @@ int fs_delete_file(const char* name) {
 uint32_t fs_read(uint32_t inode_idx, inode_t* node, uint32_t offset, uint32_t size, uint8_t* buffer) {
     uint32_t bytes_read = 0;
     uint8_t sector_buf[512];
-    /* If offset is already at or past EOF, node->size - offset would
-     * underflow (both are uint32_t) and turn into a ~4GB "size", which
-     * then drives the loop below into writing gigabytes into a caller
-     * buffer that's only a few KB - a massive out-of-bounds write that
-     * corrupts memory almost immediately. This happens whenever a
-     * caller's own bookkeeping (e.g. a WAV header's declared data size)
-     * doesn't exactly match the file's real on-disk size. */
     if (offset >= node->size) {
         return 0;
     }

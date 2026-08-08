@@ -30,6 +30,58 @@ static struct ac97_bdl_entry bdl[BDL_ENTRIES] __attribute__((aligned(8)));
 static uint8_t stream_bufs[BDL_ENTRIES][CHUNK_SIZE] __attribute__((aligned(8)));
 static int16_t audio_buffer[32000];
 
+static volatile int g_ac97_stop_requested = 0;
+static volatile int g_ac97_paused = 0;
+static uint8_t g_ac97_vol_atten = 0; 
+static uint8_t g_ac97_muted = 0;
+
+#define AC97_NAM_PCM_OUT_VOL   0x18
+#define AC97_NAM_EXT_AUDIO_ID  0x28
+#define AC97_NAM_EXT_AUDIO_CTL 0x2A
+#define AC97_NAM_FRONT_DAC_RATE 0x2C
+#define AC97_EA_VRA            0x0001
+
+void ac97_stop(void) {
+    g_ac97_stop_requested = 1;
+    g_ac97_paused = 0;
+}
+
+void ac97_pause(void) {
+    g_ac97_paused = 1;
+}
+
+void ac97_resume(void) {
+    g_ac97_paused = 0;
+}
+
+void ac97_set_volume(uint8_t vol_atten) {
+    if (vol_atten > 31) vol_atten = 31;
+    g_ac97_vol_atten = vol_atten;
+    uint32_t real_bar0 = pci_config_read(g_dev.bus, g_dev.device, g_dev.function, 0x10);
+    uint16_t nam_port = (uint16_t)(real_bar0 & ~0x3);
+    uint16_t val = (uint16_t)((vol_atten << 8) | vol_atten);
+    if (g_ac97_muted) val |= 0x8000;
+    outw(nam_port + AC97_NAM_PCM_OUT_VOL, val);
+}
+
+void ac97_set_mute(int mute) {
+    g_ac97_muted = mute ? 1 : 0;
+    ac97_set_volume(g_ac97_vol_atten);
+}
+
+static uint32_t ac97_set_rate(uint16_t nam_port, uint32_t rate) {
+    uint16_t ext_id = inw(nam_port + AC97_NAM_EXT_AUDIO_ID);
+    if (!(ext_id & AC97_EA_VRA)) {
+        return 48000;
+    }
+    uint16_t ctl = inw(nam_port + AC97_NAM_EXT_AUDIO_CTL);
+    outw(nam_port + AC97_NAM_EXT_AUDIO_CTL, ctl | AC97_EA_VRA);
+    if (rate < 8000) rate = 8000;
+    if (rate > 48000) rate = 48000;
+    outw(nam_port + AC97_NAM_FRONT_DAC_RATE, (uint16_t)rate);
+    return inw(nam_port + AC97_NAM_FRONT_DAC_RATE);
+}
+
 static int ac97_wait_reset_done(uint16_t nabm_port) {
     for (int i = 0; i < 100000; i++) {
         if ((inb(nabm_port + 0x1B) & 0x02) == 0) {
@@ -64,6 +116,9 @@ static int ac97_reset_stream(uint16_t nabm_port) {
 }
 
 int ac97_init(void) {
+    if (g_dev.vendor_id != 0) {
+        return 0; /* already found this boot */
+    }
     if (pci_find_class(0x04, 0x01, &g_dev, 0) != 0) {
         kklog("NO AC97 DEVICE");
         return -1;
@@ -74,6 +129,9 @@ int ac97_init(void) {
 int ac97_play_pcm(void* buffer, uint32_t length_bytes) {
     if (length_bytes < 4) {
         return 0;
+    }
+    if (ac97_init() != 0) {
+        return -1;
     }
     uint16_t nabm_port = ac97_get_nabm_port();
     if (ac97_reset_stream(nabm_port) != 0) {
@@ -100,6 +158,9 @@ int ac97_play_pcm(void* buffer, uint32_t length_bytes) {
 }
 
 int prep_play(void){
+    if (ac97_init() != 0) {
+        return -1;
+    }
     uint32_t cmd = pci_config_read(g_dev.bus, g_dev.device, g_dev.function, 0x04);
     pci_config_write(g_dev.bus, g_dev.device, g_dev.function, 0x04, cmd | 0x05);
     return 0;
@@ -153,6 +214,10 @@ int ac97_play_test_tone(void) {
 }
 
 int play_wav_file(const char* filename) {
+    ac97_play_test_tone();
+    if (ac97_init() != 0) {
+        return -1;
+    }
     int inode_num = fs_resolve_path(filename, g_current_dir);
     if (inode_num < 0) {
         kklogf_color("WAV: %s not found\n", 0x00FF00, filename);
@@ -172,12 +237,22 @@ int play_wav_file(const char* filename) {
     uint32_t chunk_offset = 12;
     uint32_t data_offset = 0;
     uint32_t total_data = 0;
+    uint32_t wav_sample_rate = 48000; /* fallback if no fmt chunk is found */
+    uint16_t wav_channels = 2;
     while (chunk_offset + 8 <= file_node.size) {
         uint8_t chunk_hdr[8];
         fs_read((uint32_t)inode_num, &file_node, chunk_offset, sizeof(chunk_hdr), chunk_hdr);
         uint32_t chunk_size;
         memcpy(&chunk_size, chunk_hdr + 4, 4);
-        if (memcmp(chunk_hdr, "data", 4) == 0) {
+        if (memcmp(chunk_hdr, "fmt ", 4) == 0) {
+            uint8_t fmt[16];
+            uint32_t fmt_len = chunk_size < sizeof(fmt) ? chunk_size : sizeof(fmt);
+            fs_read((uint32_t)inode_num, &file_node, chunk_offset + 8, fmt_len, fmt);
+            if (fmt_len >= 16) {
+                memcpy(&wav_channels, fmt + 2, 2);
+                memcpy(&wav_sample_rate, fmt + 4, 4);
+            }
+        } else if (memcmp(chunk_hdr, "data", 4) == 0) {
             data_offset = chunk_offset + 8;
             total_data = chunk_size;
             break;
@@ -188,17 +263,29 @@ int play_wav_file(const char* filename) {
         kklog("WAV: data chunk not found\n");
         return -1;
     }
+    if (wav_channels == 0) wav_channels = 2;
     if (data_offset + total_data > file_node.size) {
         total_data = file_node.size - data_offset;
     }
 
+    if (wav_channels != 2) {
+        kklog("WAV: mono files are played at native rate but not up-mixed to stereo\n");
+    }
+
+    uint32_t real_bar0 = pci_config_read(g_dev.bus, g_dev.device, g_dev.function, 0x10);
+    uint16_t nam_port = (uint16_t)(real_bar0 & ~0x3);
     uint16_t nabm_port = ac97_get_nabm_port();
     if (ac97_reset_stream(nabm_port) != 0) {
         return -1;
     }
+    uint32_t applied_rate = ac97_set_rate(nam_port, wav_sample_rate);
+    ac97_set_volume(g_ac97_vol_atten);
     outl(nabm_port + 0x10, (uint32_t)&bdl);
 
-    kklogf_color("Playing: %s (%d bytes)\n", 0x00FF00, filename, total_data);
+    g_ac97_stop_requested = 0;
+    g_ac97_paused = 0;
+
+    kklogf_color("Playing: %s (%d bytes @ %d Hz)\n", 0x00FF00, filename, total_data, applied_rate);
 
     uint32_t offset = data_offset;
     uint32_t remaining = total_data;
@@ -208,6 +295,19 @@ int play_wav_file(const char* filename) {
     uint8_t prev_civ = 0;
 
     while (remaining > 0 || consumed_total < filled_total) {
+        if (g_ac97_stop_requested) {
+            break;
+        }
+        while (g_ac97_paused && !g_ac97_stop_requested) {
+            /* Hold the run bit low so the codec stays parked on the
+             * current buffer instead of underrunning. */
+            outb(nabm_port + 0x1B, 0x00);
+            asm volatile("pause");
+        }
+        if (started && !g_ac97_paused && !(inb(nabm_port + 0x1B) & 0x01)) {
+            outb(nabm_port + 0x1B, 0x01); /* resume after a pause */
+        }
+
         uint32_t in_flight = filled_total - consumed_total;
         while (remaining > 0 && in_flight < BDL_ENTRIES) {
             uint32_t want = remaining;
@@ -259,6 +359,12 @@ int play_wav_file(const char* filename) {
     }
 
     outb(nabm_port + 0x1B, 0x00);
-    kklog("WAV: Finished.\n");
+    g_ac97_paused = 0;
+    if (g_ac97_stop_requested) {
+        g_ac97_stop_requested = 0;
+        kklog("WAV: Stopped.\n");
+    } else {
+        kklog("WAV: Finished.\n");
+    }
     return 0;
 }

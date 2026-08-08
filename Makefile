@@ -75,7 +75,7 @@ hd:
 	hexdump -C disk.img | less
 a:
 	make clean
-	make dd1
+	make dd128
 	make dd_second
 	make 
 	make run

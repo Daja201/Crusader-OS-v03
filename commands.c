@@ -230,7 +230,7 @@ void cmd_read_custom(int argc, char** argv) {
     read_inode(g_current_dir, &root);
     int inode_num = dir_lookup(&root, argv[1]);
     if (inode_num < 0) {
-        kklog("Error: File not found");
+        klog_status("ERROR FILE NOT FOUND", 0xff0000);
         return;
     }
     inode_t file_node;
@@ -242,7 +242,7 @@ void cmd_read_custom(int argc, char** argv) {
     }
     int bytes_read = fs_read(inode_num, &file_node, 0, to_read, buf);
     if (bytes_read <= 0) {
-        kklog("Error: Could not read file (or empty)");
+        klog_status("ERROR COULD NOT READ FILE OR EMPTY", 0xFF0000);
         return;
     }
     for (int i = 0; i < bytes_read; i++) {
@@ -745,7 +745,10 @@ void cmd_mf(int argc, char** argv) {
 }
 
 void cmd_playraw() {
-    prep_play();
+    if (prep_play() != 0) {
+        kklog_color("AC97: no device found\n", 0xFF0000);
+        return;
+    }
     select_drive(0x1F0, 1);
     block_read(0, raw_wav_buffer);
     uint32_t* sig = (uint32_t*)raw_wav_buffer;
@@ -851,6 +854,9 @@ void cmd_open(int argc, char** argv) {
         } 
         else if (strcmp(dot, ".txt") == 0) {
             cmd_read(argc, argv);
+        } 
+        else if (strcmp(dot, ".tmplr") == 0) {
+            templar_file(filename);
         } 
         else {
             klog_status("UNKNOWN EXTENSION", 0xFF0000);
