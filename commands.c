@@ -820,7 +820,7 @@ void cmd_open(int argc, char** argv) {
             cmd_read(argc, argv);
         } 
         else if (strcmp(dot, ".tmplr") == 0) {
-            templar_file(filename);
+            klog("please add templar already");
         } 
         else {
             klog_status("UNKNOWN EXTENSION", 0xFF0000);
