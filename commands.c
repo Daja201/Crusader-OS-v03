@@ -649,12 +649,6 @@ void cmd_app(int argc, char** argv) {
     app(argv[1]);
 }
 
-void cmd_play97(int argc, char** argv) {
-    if (ac97_init() == 0) {
-        ac97_play_test_tone();
-    }
-}
-
 void cmd_mf_custom(int argc, char** argv) {
     if (argc < 2) {
         kklog("Usage: mf <name>");
@@ -742,36 +736,6 @@ void cmd_dl(int argc, char** argv) {
 void cmd_mf(int argc, char** argv) {
     if (g_fs_kind == FS_KIND_FAT32) cmd_mf32(argc, argv);
     else cmd_mf_custom(argc, argv);
-}
-
-void cmd_playraw() {
-    if (prep_play() != 0) {
-        kklog_color("AC97: no device found\n", 0xFF0000);
-        return;
-    }
-    select_drive(0x1F0, 1);
-    block_read(0, raw_wav_buffer);
-    uint32_t* sig = (uint32_t*)raw_wav_buffer;
-    if (sig[0] != 0x46464952) {
-        kklog("error wave not found");
-        select_drive(0x1F0, 0);
-        return;
-    }
-    kklog_color("Wave found\n", 0x00FF00);
-    uint32_t current_lba = 0;
-    for (int chunk = 0; chunk < 500; chunk++) {
-        for (int i = 0; i < CHUNK_SECTORS; i++) {
-            block_read(current_lba + i, raw_wav_buffer + (i * 512));
-        }
-        ac97_play_pcm(raw_wav_buffer, CHUNK_SECTORS * 512);
-        current_lba += CHUNK_SECTORS;
-    }
-    kklog("finished\n");
-    select_drive(0x1F0, 0);
-}
-
-void playrawjmp() {
-    create_task(cmd_playraw);
 }
 
 void cmd_usb(int argc, char** argv) {
@@ -866,6 +830,18 @@ void cmd_open(int argc, char** argv) {
     }
 }
 
+void cmd_ac97_set_volume(int argc, char** argv) {
+    if (argc < 2) {
+        kklog("Usage: vol <0-31>\n");
+        return;
+    }
+    int val = atoi(argv[1]);
+    if (val < 0) val = 0;
+    if (val > 31) val = 31;
+    uint8_t vol = (uint8_t)val;
+    ac97_set_volume(vol);
+}
+
 command_t commands[] = {
     {"help", cmd_help},
     {"clear", cmd_clear},
@@ -894,17 +870,16 @@ command_t commands[] = {
     {"qformat", cmd_qformat},
     {"use", cmd_usedisk},
     {"mem", cmd_mem},
-    {"play97", cmd_play97},
     {"shutdown", cmd_shutdown},
     {"app", cmd_app},
     {"mf", cmd_mf},
     {"cd", cmd_cd},
-    {"play1", playrawjmp},
     {"usb", cmd_usb},
     {"hidraw", cmd_hidraw},
     {"open", cmd_open},
     {"mustop", ac97_stop},
     {"mupause", ac97_pause},
+    {"vol", cmd_ac97_set_volume},
 };
 
 int command_count = sizeof(commands)/sizeof(command_t);
